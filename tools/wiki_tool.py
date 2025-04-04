@@ -2,7 +2,6 @@
 import logging
 import requests
 from typing import Dict, Any, Optional
-from langchain_core.tools import tool
 
 class WikiTool:
     """Tool for retrieving information from Wikipedia"""
@@ -10,7 +9,6 @@ class WikiTool:
     def __init__(self):
         self.wiki_api_endpoint = "https://en.wikipedia.org/w/api.php"
     
-    @tool
     def wiki_search(self, query: str) -> str:
         """
         Search Wikipedia for information about a topic.

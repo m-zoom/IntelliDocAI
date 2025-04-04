@@ -52,13 +52,32 @@ class AIDocumentAgent:
         tools = []
         
         if self.doc_input.enable_research:
-            tools.extend([
-                SearchTool().get_tool(),
-                WikiTool().get_tool(),
-            ])
+            search_tool = Tool.from_function(
+                func=SearchTool().search,
+                name="search",
+                description="Search the web for information about a topic. Input should be a search query string.",
+                return_direct=False
+            )
+            
+            wiki_tool = Tool.from_function(
+                func=WikiTool().wiki_search,
+                name="wiki_search",
+                description="Search Wikipedia for information about a topic. Input should be a search query or topic.",
+                return_direct=False
+            )
+            
+            tools.append(search_tool)
+            tools.append(wiki_tool)
         
-        # Always include save tool
-        tools.append(SaveTool().get_tool())
+        # Always add the save tool
+        save_tool = Tool.from_function(
+            func=SaveTool().save_content,
+            name="save_content",
+            description="Save document content for later processing into a PDF. Input should be the document content as a string.",
+            return_direct=False
+        )
+        
+        tools.append(save_tool)
         
         return tools
     

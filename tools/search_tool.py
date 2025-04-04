@@ -5,8 +5,6 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 
-from langchain_core.tools import tool
-
 class SearchTool:
     """Tool for performing web searches to gather information"""
     
@@ -16,7 +14,6 @@ class SearchTool:
         self.search_api_key = os.environ.get("SEARCH_API_KEY", "")
         self.search_endpoint = "https://api.search.example.com/search"  # Example endpoint
     
-    @tool
     def search(self, query: str) -> str:
         """
         Search the web for information about a topic.

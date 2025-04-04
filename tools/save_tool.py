@@ -4,8 +4,6 @@ import json
 import logging
 from typing import Dict, Any
 
-from langchain_core.tools import tool
-
 class SaveTool:
     """Tool for saving document content for later processing"""
     
@@ -15,7 +13,6 @@ class SaveTool:
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
     
-    @tool
     def save_content(self, content: str) -> str:
         """
         Save document content for later processing into a PDF.
