@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Document Generation Status</h5>
+        
+        {% if result.status == "processing" %}
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border text-info me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>
+                        <strong>Processing...</strong>
+                        <p class="mb-0">Document generation is in progress. This may take a few minutes, especially if research is enabled.</p>
+                    </div>
+                </div>
+            </div>
+            <script>
+                // Auto-refresh the page every 5 seconds
+                setTimeout(function() {
+                    window.location.reload();
+                }, 5000);
+            </script>
+        {% elif result.status == "success" %}
+            <div class="alert alert-success">
+                <strong>Success!</strong> {{ result.message }}
+            </div>
+            <p>Your document has been successfully generated and is ready for download.</p>
+            <a href="/download/{{ result.file_path }}" class="btn btn-success">Download PDF</a>
+        {% elif result.status == "error" %}
+            <div class="alert alert-danger">
+                <strong>Error:</strong> {{ result.message }}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <strong>No document generation in progress.</strong>
+            </div>
+        {% endif %}
+        
+        <div class="mt-3">
+            <a href="/" class="btn btn-secondary">Back to Form</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">About the Generation Process</h5>
+        <p>When generating a document, our AI system:</p>
+        <ol>
+            <li>Analyzes your topic and key points</li>
+            <li>Researches information if enabled</li>
+            <li>Creates a structured document with sections</li>
+            <li>Formats everything into a professional PDF</li>
+        </ol>
+        <p class="mb-0 text-secondary"><small>Complex topics or research-enabled generation may take longer to complete.</small></p>
+    </div>
+</div>
+{% endblock %}
