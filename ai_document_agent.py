@@ -65,24 +65,26 @@ class AIDocumentAgent:
     def _create_agent(self) -> AgentExecutor:
         """Create the LangChain agent"""
         if self.doc_input.enable_research:
-            # Create a research-capable agent
+            # Create a research-capable agent with proper message roles
+            system_message = """You are an intelligent document creation assistant that helps users create 
+            well-structured documents on various topics. When given a topic, subtopic, and key points,
+            you'll research the topic and create detailed, factual content with proper citations.
+            
+            Follow these guidelines:
+            1. When researching, be thorough but focus on reliable sources
+            2. Create well-structured content with clear sections
+            3. Ensure all information is accurate and properly cited
+            4. Organize the content logically based on the key points provided
+            5. Use the search and wiki tools to gather information when needed
+            6. Use the save tool to save your final document content
+            
+            Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
+            """
+            
             prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are an intelligent document creation assistant that helps users create 
-                well-structured documents on various topics. When given a topic, subtopic, and key points,
-                you'll research the topic and create detailed, factual content with proper citations.
-                
-                Follow these guidelines:
-                1. When researching, be thorough but focus on reliable sources
-                2. Create well-structured content with clear sections
-                3. Ensure all information is accurate and properly cited
-                4. Organize the content logically based on the key points provided
-                5. Use the search and wiki tools to gather information when needed
-                6. Use the save tool to save your final document content
-                
-                Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
-                """),
-                ("user", "{input}"),
-                ("agent_scratchpad", "{agent_scratchpad}")
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": "{input}"},
+                {"role": "assistant", "content": "{agent_scratchpad}"}
             ])
             
             if self.doc_input.model_provider == "openai":
@@ -93,21 +95,23 @@ class AIDocumentAgent:
             return AgentExecutor(agent=agent, tools=self.tools, verbose=True)
         else:
             # Create a simpler agent without research capabilities
+            system_message = """You are an intelligent document creation assistant that helps users create 
+            well-structured documents on various topics. When given a topic, subtopic, and key points,
+            you'll create detailed content based on your knowledge.
+            
+            Follow these guidelines:
+            1. Create well-structured content with clear sections
+            2. Organize the content logically based on the key points provided
+            3. Ensure the content is comprehensive and informative
+            4. Use the save tool to save your final document content
+            
+            Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
+            """
+            
             prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are an intelligent document creation assistant that helps users create 
-                well-structured documents on various topics. When given a topic, subtopic, and key points,
-                you'll create detailed content based on your knowledge.
-                
-                Follow these guidelines:
-                1. Create well-structured content with clear sections
-                2. Organize the content logically based on the key points provided
-                3. Ensure the content is comprehensive and informative
-                4. Use the save tool to save your final document content
-                
-                Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
-                """),
-                ("user", "{input}"),
-                ("agent_scratchpad", "{agent_scratchpad}")
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": "{input}"},
+                {"role": "assistant", "content": "{agent_scratchpad}"}
             ])
             
             if self.doc_input.model_provider == "openai":
