@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Generator</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        textarea {
+            min-height: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4 text-center">AI Document Generator</h1>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form action="/generate" method="post">
+                            <div class="mb-3">
+                                <label for="topic" class="form-label">Topic *</label>
+                                <input type="text" class="form-control" id="topic" name="topic" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="subtopic" class="form-label">Subtopic (Optional)</label>
+                                <input type="text" class="form-control" id="subtopic" name="subtopic">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="key_points" class="form-label">Key Points (One per line)</label>
+                                <textarea class="form-control" id="key_points" name="key_points" rows="4" placeholder="Enter key points, one per line"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">AI Model Provider</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="model_provider" id="openai" value="openai" checked>
+                                    <label class="form-check-label" for="openai">
+                                        OpenAI (GPT-4o)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="model_provider" id="anthropic" value="anthropic">
+                                    <label class="form-check-label" for="anthropic">
+                                        Anthropic (Claude 3.5 Sonnet)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="enable_research" name="enable_research">
+                                <label class="form-check-label" for="enable_research">Enable autonomous research</label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Generate Document</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">How It Works</h5>
+                        <p>This tool uses advanced AI models to generate well-structured PDF documents on any topic you provide:</p>
+                        <ol>
+                            <li>Enter a main topic and optional subtopic</li>
+                            <li>Add key points you want covered (optional)</li>
+                            <li>Choose between OpenAI or Anthropic models</li>
+                            <li>Enable research if you want the AI to gather information autonomously</li>
+                            <li>Click "Generate Document" to create your PDF</li>
+                        </ol>
+                        <p class="mb-0 text-secondary"><small>Note: Document generation may take a few minutes, especially with research enabled.</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
