@@ -45,7 +45,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">How It Works</h5>
         <p>This tool uses advanced AI models to generate well-structured PDF documents on any topic you provide:</p>
@@ -59,4 +59,23 @@
         <p class="mb-0 text-secondary"><small>Note: Document generation may take a few minutes, especially with research enabled.</small></p>
     </div>
 </div>
+
+{% if show_cli %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">CLI Usage Instructions</h5>
+        <p>You can also use this tool directly from the command line:</p>
+        <pre class="bg-dark text-light p-3 rounded">python main.py --topic "Your Topic" --subtopic "Your Subtopic" --key-points "Point 1" "Point 2" --model openai --output output.pdf --research</pre>
+        <p>Parameters:</p>
+        <ul>
+            <li><strong>--topic</strong>: Main topic for the document (required)</li>
+            <li><strong>--subtopic</strong>: Subtopic for the document (optional)</li>
+            <li><strong>--key-points</strong>: Key points to include (space-separated)</li>
+            <li><strong>--model</strong>: AI model provider to use (openai or anthropic, default: openai)</li>
+            <li><strong>--output</strong>: Output PDF filename (default: output.pdf)</li>
+            <li><strong>--research</strong>: Enable autonomous research on the topic</li>
+        </ul>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

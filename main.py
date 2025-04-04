@@ -3,7 +3,9 @@
 import os
 import sys
 import logging
-from flask import Flask, request, render_template_string, send_file, jsonify
+import threading
+from datetime import datetime
+from flask import Flask, request, render_template, send_file, redirect, flash, jsonify
 from dotenv import load_dotenv
 
 from ai_document_agent import AIDocumentAgent
@@ -27,119 +29,28 @@ if missing_keys:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
-# Simple HTML template
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Document Generator</title>
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    <style>
-        .container { max-width: 800px; margin-top: 30px; }
-        textarea { min-height: 120px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <h1 class="mb-4 text-center">AI Document Generator</h1>
-                
-                {% if error %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                {% endif %}
-                
-                {% if success %}
-                    <div class="alert alert-success">{{ success }}</div>
-                {% endif %}
-                
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <form action="/generate" method="post">
-                            <div class="mb-3">
-                                <label for="topic" class="form-label">Topic *</label>
-                                <input type="text" class="form-control" id="topic" name="topic" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="subtopic" class="form-label">Subtopic (Optional)</label>
-                                <input type="text" class="form-control" id="subtopic" name="subtopic">
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="key_points" class="form-label">Key Points (One per line)</label>
-                                <textarea class="form-control" id="key_points" name="key_points" rows="4" placeholder="Enter key points, one per line"></textarea>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">AI Model Provider</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="model_provider" id="openai" value="openai" checked>
-                                    <label class="form-check-label" for="openai">
-                                        OpenAI (GPT-4o)
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="model_provider" id="anthropic" value="anthropic">
-                                    <label class="form-check-label" for="anthropic">
-                                        Anthropic (Claude 3.5 Sonnet)
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="enable_research" name="enable_research">
-                                <label class="form-check-label" for="enable_research">Enable autonomous research</label>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary">Generate Document</button>
-                        </form>
-                    </div>
-                </div>
-                
-                {% if result %}
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Document Generation Result</h5>
-                            <p>{{ result.message }}</p>
-                            {% if result.file_path %}
-                                <a href="/download/{{ result.file_path }}" class="btn btn-success">Download PDF</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
-                
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">How It Works</h5>
-                        <p>This tool uses advanced AI models to generate well-structured PDF documents on any topic you provide:</p>
-                        <ol>
-                            <li>Enter a main topic and optional subtopic</li>
-                            <li>Add key points you want covered (optional)</li>
-                            <li>Choose between OpenAI or Anthropic models</li>
-                            <li>Enable research if you want the AI to gather information autonomously</li>
-                            <li>Click "Generate Document" to create your PDF</li>
-                        </ol>
-                        <p class="mb-0 text-secondary"><small>Note: Document generation may take a few minutes, especially with research enabled.</small></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-"""
+# Global variables
+current_generation_thread = None
+last_generation_result = {"status": None, "message": None, "file_path": None}
 
 @app.route('/')
 def index():
     """Home page with document generation form"""
-    return render_template_string(HTML_TEMPLATE)
+    return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
 def generate_document():
     """Generate document from form submission"""
+    global current_generation_thread, last_generation_result
+    
+    # Check if a generation is already in progress
+    if current_generation_thread and current_generation_thread.is_alive():
+        flash("A document generation is already in progress. Please wait for it to complete.", "warning")
+        return redirect('/')
+    
+    # Reset last result
+    last_generation_result = {"status": "processing", "message": "Document generation in progress...", "file_path": None}
+    
     # Get form data
     topic = request.form.get('topic', '').strip()
     subtopic = request.form.get('subtopic', '').strip()
@@ -150,10 +61,12 @@ def generate_document():
     
     # Validate input
     if not topic:
-        return render_template_string(HTML_TEMPLATE, error="Topic is required")
+        flash("Topic is required", "danger")
+        return redirect('/')
     
-    # Create output filename
-    output_file = f"{topic.lower().replace(' ', '_')}.pdf"
+    # Create unique output filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = f"document_{timestamp}.pdf"
     
     # Create document input
     doc_input = DocumentInput(
@@ -165,27 +78,41 @@ def generate_document():
         enable_research=enable_research
     )
     
-    try:
-        # Create AI document agent
-        agent = AIDocumentAgent(doc_input)
-        
-        # Generate the document
-        logging.info(f"Generating document about '{doc_input.topic}' using {doc_input.model_provider}...")
-        agent.generate_document()
-        
-        result = {
-            "status": "success", 
-            "message": f"Document successfully generated!",
-            "file_path": output_file
-        }
-        
-        logging.info(f"Document successfully generated: {output_file}")
-        return render_template_string(HTML_TEMPLATE, result=result, success="Document generation completed successfully!")
-        
-    except Exception as e:
-        error_message = f"Error generating document: {str(e)}"
-        logging.error(error_message)
-        return render_template_string(HTML_TEMPLATE, error=error_message)
+    # Start document generation in a separate thread
+    def generate_doc_thread():
+        global last_generation_result
+        try:
+            # Create AI document agent
+            agent = AIDocumentAgent(doc_input)
+            
+            # Generate the document
+            logging.info(f"Generating document about '{doc_input.topic}' using {doc_input.model_provider}...")
+            agent.generate_document()
+            
+            # Update result
+            last_generation_result = {
+                "status": "success", 
+                "message": f"Document successfully generated", 
+                "file_path": output_file
+            }
+            logging.info(f"Document successfully generated: {output_file}")
+            
+        except Exception as e:
+            error_message = f"Error generating document: {str(e)}"
+            logging.error(error_message)
+            last_generation_result = {"status": "error", "message": error_message, "file_path": None}
+    
+    # Start the thread
+    current_generation_thread = threading.Thread(target=generate_doc_thread)
+    current_generation_thread.start()
+    
+    # Redirect to status page
+    return redirect('/status')
+
+@app.route('/status')
+def check_status():
+    """Check the status of document generation"""
+    return render_template('status.html', result=last_generation_result)
 
 @app.route('/download/<path:filename>')
 def download_file(filename):
@@ -193,32 +120,13 @@ def download_file(filename):
     try:
         return send_file(filename, as_attachment=True)
     except Exception as e:
-        return render_template_string(HTML_TEMPLATE, error=f"Error downloading file: {str(e)}")
+        flash(f"Error downloading file: {str(e)}", "danger")
+        return redirect('/')
 
 @app.route('/cli')
 def cli_instructions():
     """Instructions for CLI usage"""
-    instructions = """
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">CLI Usage Instructions</h5>
-            <p>You can also use this tool directly from the command line:</p>
-            <pre class="bg-dark text-light p-3 rounded">
-python main.py --topic "Your Topic" --subtopic "Your Subtopic" --key-points "Point 1" "Point 2" --model openai --output output.pdf --research
-            </pre>
-            <p>Parameters:</p>
-            <ul>
-                <li><strong>--topic</strong>: Main topic for the document (required)</li>
-                <li><strong>--subtopic</strong>: Subtopic for the document (optional)</li>
-                <li><strong>--key-points</strong>: Key points to include (space-separated)</li>
-                <li><strong>--model</strong>: AI model provider to use (openai or anthropic, default: openai)</li>
-                <li><strong>--output</strong>: Output PDF filename (default: output.pdf)</li>
-                <li><strong>--research</strong>: Enable autonomous research on the topic</li>
-            </ul>
-        </div>
-    </div>
-    """
-    return render_template_string(HTML_TEMPLATE + instructions)
+    return render_template('index.html', show_cli=True)
 
 if __name__ == "__main__":
     # If script is run directly without arguments, start the web server

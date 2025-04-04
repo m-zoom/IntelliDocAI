@@ -81,7 +81,8 @@ class AIDocumentAgent:
                 
                 Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
                 """),
-                ("user", "{input}")
+                ("user", "{input}"),
+                ("agent_scratchpad", "{agent_scratchpad}")
             ])
             
             if self.doc_input.model_provider == "openai":
@@ -105,7 +106,8 @@ class AIDocumentAgent:
                 
                 Your final output should be comprehensive, well-organized, and focused on the topic and subtopics.
                 """),
-                ("user", "{input}")
+                ("user", "{input}"),
+                ("agent_scratchpad", "{agent_scratchpad}")
             ])
             
             if self.doc_input.model_provider == "openai":
